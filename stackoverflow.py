@@ -22,7 +22,7 @@ answers_writer.writerow(['Question_ID', 'Answer_Score', 'Author_Name', 'Author_I
                          'Number_Of_Comments', 'Answer_Accepted'])
 
 # Loop through the pages of newest questions
-for page_num in range(1, 10): 
+for page_num in range(1, 40): 
     page_url = f'https://apple.stackexchange.com/questions?tab=Newest'
     page_html = requests.get(page_url).text
     page_soup = BeautifulSoup(page_html, 'html.parser')
@@ -37,8 +37,15 @@ for page_num in range(1, 10):
         question_soup = BeautifulSoup(question_html, 'html.parser')
 
         # Extract data using beautifulsoup and store them
-        question_id = question_soup.find('div', {'class': 'question js-question'})['data-questionid']
+        try:
+            question_id = question_soup.find('div', {'class': 'question js-question'})['data-questionid']
+        except AttributeError:
+            question_id = "N/A"
         
+        try:
+            question_title = question_soup.find('a', class_='question-hyperlink').text
+        except AttributeError:
+            question_title = "N/A"
         
         # Find the div with class 'user-details'
         user_details = question_soup.find('div', {'class': 'user-details'})
@@ -81,6 +88,13 @@ for page_num in range(1, 10):
         tag_elements = question_soup.find_all('a', {'class': 'post-tag'})
         # Extract the tag text from the tag elements
         tags = [tag.text for tag in tag_elements]
+        ans_tag = [5]
+        for i in range(0, 4):
+            try:
+                ans_tag.append(tags[i])
+            except Exception:
+                ans_tag.append("N/A")
+
         
         # Check if the question is closed
         closed_element = question_soup.find('div', {'class': 'js-question-closed'})
@@ -113,18 +127,44 @@ for page_num in range(1, 10):
                 
                 # Check if the answer is accepted or not
                 is_accepted = answer_div.find('div', {'class': 'js-accepted-answer-indicator'}) is not None
-        else: ans_score = poster_div = ans_name = profile_url = ans_user_id = ans_reputation_score = "NA"
+        else: is_accepted = num_comments = ans_score = ans_name  = ans_user_id = ans_reputation_score = "NA" 
+
+        print(question_title)
         
-
-    
-    answer_data_list = []
-
-    # Write the extracted data to the CSV files
-    questions_writer.writerow([...])
-    for answer_data in answer_data_list:
-        answers_writer.writerow(answer_data)
-    # Delay for 1 second before downloaDing the next page
-    time.sleep(1)
+        question_data = {
+            'Question_Title': question_title,
+            'Question_ID': question_id,
+            'Author_Name': name,
+            'Author_ID': user_id,
+            'Author_Rep': reputation_score,
+            'Question_Post_Time': timestamp,
+            'Question_Score': score,
+            'Number_Of_Views': views,
+            'Number_Of_Answers': answers,
+            'Number_Of_Comments': comment_element,
+            'Edited': has_been_edited,
+            'Answer_Accepted': accepted,
+            'Tag_1': ans_tag[0],
+            'Tag_2': ans_tag[1],
+            'Tag_3': ans_tag[2],
+            'Tag_4': ans_tag[3],
+            'Tag_5': ans_tag[4],
+            'Question_Closed': is_closed,}   
+        answer_data = {
+            'Question_ID': question_id, 
+            'Answer_Score': ans_score, 
+            'Author_Name': ans_name,
+            'Author_ID': ans_user_id, 
+            'Author_Rep': ans_reputation_score, 
+            'Number_Of_Comments': num_comments, 
+            'Answer_Accepted': is_accepted,
+            }
+        
+        # Write the extracted data to the CSV files
+        questions_writer.writerow(question_data.values())
+        answers_writer.writerow(answer_data.values())
+        # Delay for 1 second before downloaDing the next page
+        time.sleep(1)
 
 # Close the CSV files
 questions_file.close()
